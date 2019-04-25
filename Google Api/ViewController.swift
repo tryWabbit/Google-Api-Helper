@@ -10,7 +10,6 @@ class ViewController: UIViewController {
     @IBOutlet weak var searchView: UIView!
     @IBOutlet weak var mapview: MKMapView!
     var autocompleteResults :[GApiResponse.Autocomplete] = []
-    var oldLocation :CLLocationCoordinate2D?
 
     @IBAction func searchButtonPressed(_ sender: Any) {
         textfieldAddress.becomeFirstResponder()
@@ -69,25 +68,6 @@ extension ViewController : MKMapViewDelegate {
                 }
             } else { print(response.error ?? "ERROR") }
         }
-        
-        // Just to demonstrate draw path api
-        if let location = oldLocation {
-            let origin = GLocation.init(latitude: location.latitude, longitude: location.longitude)
-            input.originCoordinate = origin
-            GoogleApi.shared.callApi(.path , input: input) { (response) in
-                if let _ = response.data as? GApiResponse.Path, response.isValidFor(.path) {
-                    /* draw path on map
-                    DispatchQueue.main.async {
-                        let path = GMSPath(fromEncodedPath: route.points)
-                        let polyline = GMSPolyline(path: path)
-                        polyline.strokeWidth = 3.0
-                        polyline.map = mapView
-                    }
-                    */
-                } else { print(response.error ?? "ERROR") }
-            }
-        }
-        oldLocation = mapview.centerCoordinate
     }
 }
 extension ViewController : UITableViewDataSource,UITableViewDelegate {

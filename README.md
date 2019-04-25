@@ -13,23 +13,44 @@ Welcome to Google api helper. This library saves your time to write basic google
 
 ## Autocomplete
 
-    GoogleApi.shared.callApi(.autocomplete,input: "San francisco") { (response) in
-        if let result = response.data, response.isValidFor(.autocomplete) {
-            // Enjoy your results
+    var input = GInput()
+    input.keyword = "San francisco"
+    GoogleApi.shared.callApi(input: input) { (response) in
+        if let results = response.data as? [GApiResponse.Autocomplete], response.isValidFor(.autocomplete) {
+            //Enjoy the Autocomplete Api
         } else { print(response.error ?? "ERROR") }
     }
         
 ## Reverse Geo
 
-    GoogleApi.shared.callApi(.reverseGeo,input: "26.27454,73.00954") { (response) in
-        if let result = response.data, response.isValidFor(.reverseGeo) {
-            // Enjoy your results
+    var input = GInput()
+    let destination = GLocation.init(latitude: lattitude, longitude: longitude)
+    input.destinationCoordinate = destination
+    GoogleApi.shared.callApi(.reverseGeo , input: input) { (response) in
+        if let places = response.data as? [GApiResponse.ReverseGio], response.isValidFor(.reverseGeo) {
+            //Enjoy the ReverseGeo Api
         } else { print(response.error ?? "ERROR") }
     }
 ## Place information
-    GoogleApi.shared.callApi(.placeInformation,input: "chijucwgqk6mqtkrukvhclvqfie") { (response) in
-        if let result = response.data, response.isValidFor(.placeInformation) {
-            // Enjoy your results
+
+    var input = GInput()
+    input.keyword = "chijucwgqk6mqtkrukvhclvqfie"
+    GoogleApi.shared.callApi(.placeInformation,input: input) { (response) in
+        if let place =  response.data as? GApiResponse.PlaceInfo, response.isValidFor(.placeInformation) {
+            //Enjoy the Place Api
+        } else { print(response.error ?? "ERROR") }
+    }
+    
+## Draw path
+
+    var input = GInput()
+    let origin = GLocation.init(latitude: oLattitude, longitude: oLongitude)
+    let destination = GLocation.init(latitude: dLattitude, longitude: dLongitude)
+    input.destinationCoordinate = destination
+    input.originCoordinate = origin
+    GoogleApi.shared.callApi(.path , input: input) { (response) in
+        if let path = response.data as? GApiResponse.Path, response.isValidFor(.reverseGeo) {
+            //Enjoy the Path Api
         } else { print(response.error ?? "ERROR") }
     }
 
