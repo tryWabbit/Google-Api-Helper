@@ -60,9 +60,11 @@ Welcome to Google api helper. This library saves your time to write basic google
 #### Step-2 Initialise GoogleApi with your Api key
     GoogleApi.shared.initialiseWithKey("API_KEY")
 #### Step-3 Use any api from the api with input
-    GoogleApi.shared.callApi(.placeInformation,input: "chijucwgqk6mqtkrukvhclvqfie") { (response) in
-        if let result = response.data, response.isValidFor(.placeInformation) {
-            // Enjoy your results
+    var input = GInput()
+    input.keyword = "San francisco"
+    GoogleApi.shared.callApi(input: input) { (response) in
+        if let results = response.data as? [GApiResponse.Autocomplete], response.isValidFor(.autocomplete) {
+            //Enjoy the Autocomplete Api
         } else { print(response.error ?? "ERROR") }
     }
 
