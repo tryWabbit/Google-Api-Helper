@@ -7,13 +7,22 @@
 //
 
 /*
-Example of api url
-Reverse Geo : https://maps.googleapis.com/maps/api/geocode/json?latlng=26.27454,73.00954&key=key
-Auto Complete : https://maps.googleapis.com/maps/api/place/autocomplete/json?input=jodhp&key=key
-Place information : https://maps.googleapis.com/maps/api/place/details/json?input=jaipur
-*/
+ Example of api url
+ Reverse Geo : https://maps.googleapis.com/maps/api/geocode/json?latlng=26.27454,73.00954&key=key
+ Auto Complete : https://maps.googleapis.com/maps/api/place/autocomplete/json?input=jodhp&key=key
+ Place information : https://maps.googleapis.com/maps/api/place/details/json?input=jaipur
+ */
 
 import UIKit
+struct GLocation {
+    var latitude : Double?
+    var longitude : Double?
+}
+struct GInput {
+    var keyword : String?
+    var originCoordinate : GLocation?
+    var destinationCoordinate : GLocation?
+}
 class GApiResponse {
     var data : Any?
     var error : Error?
@@ -30,6 +39,36 @@ class GApiResponse {
         case .placeInformation:
             let data = result as? PlaceInfo
             return (data != nil)
+        case .path:
+            let data = result as? Path
+            return (data != nil)
+        }
+    }
+    class Path {
+        struct Data {
+            var text : String?
+            var value: Int?
+        }
+        var points : String = ""
+        var distance : Data?
+        var duration : Data?
+        class func initWithData(_ data:[String:Any]) -> Path {
+            let object = Path()
+            guard let points = data["points"] as? String else { return object }
+            object.points = points
+            if let distance = data["distance"] as? [String:Any]{
+                var dObj  = Data()
+                dObj.text = distance["text"] as? String
+                dObj.value = distance["value"] as? Int
+                object.distance = dObj
+            }
+            if let duration = data["duration"] as? [String:Any]{
+                var dObj  = Data()
+                dObj.text = duration["text"] as? String
+                dObj.value = duration["value"] as? Int
+                object.duration = dObj
+            }
+            return object
         }
     }
     class ReverseGio {
@@ -86,6 +125,8 @@ class GoogleApi : NSObject {
         case placeInformation
         ///Use this enum to get Address from lat long
         case reverseGeo
+        /// Use this enum to find path-distance between two locations
+        case path
     }
     
     static let shared : GoogleApi = GoogleApi()
@@ -104,6 +145,7 @@ class GoogleApi : NSObject {
         case autocomplete = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
         case placeInfo = "https://maps.googleapis.com/maps/api/place/details/json"
         case reverseGeo = "https://maps.googleapis.com/maps/api/geocode/json"
+        case path = "https://maps.googleapis.com/maps/api/directions/json"
     }
     func initialiseWithKey(_ key:String) {
         googleApiKey = key
@@ -118,14 +160,45 @@ class GoogleApi : NSObject {
             return String(format: "%@?placeid=%@&key=%@",GoogleUrl.placeInfo.rawValue,input,googleApiKey)
         case .reverseGeo:
             return String(format: "%@?latlng=%@&key=%@",GoogleUrl.reverseGeo.rawValue,input,googleApiKey)
+        case .path:
+            return String(format: "%@?%@&key=%@",GoogleUrl.path.rawValue,input,googleApiKey)
         }
     }
     func cancelOldRequest() {
         session!.cancel()
         session = nil
     }
-    func callApi(_ api : UsedFor = .autocomplete,input:String,completion: @escaping GCallback) {
-        guard !input.isEmpty && !googleApiKey.isEmpty else {
+    func getConvertedInputFor(_ usedFor:UsedFor,input:GInput) -> String {
+        switch usedFor {
+        case .autocomplete,.placeInformation:
+            return input.keyword ?? ""
+        case .path:
+            var convertedInput = ""
+            if let oCoordinate = input.originCoordinate, let dCoordinate = input.destinationCoordinate {
+                if let lat = oCoordinate.latitude, let lng = oCoordinate.longitude {
+                    let lat = String(format:"%.14f", lat)
+                    let long = String(format:"%.14f", lng)
+                    convertedInput =  (lat + "," + long)
+                }
+                if let lat = dCoordinate.latitude, let lng = dCoordinate.longitude {
+                    let lat = String(format:"%.14f", lat)
+                    let long = String(format:"%.14f", lng)
+                    convertedInput = "origin=" + convertedInput + "&" + "destination=" + (lat + "," + long)
+                }
+            }
+            return convertedInput
+        case .reverseGeo:
+            if let lat = input.destinationCoordinate?.latitude, let lng = input.destinationCoordinate?.longitude {
+                let lat = String(format:"%.14f", lat)
+                let long = String(format:"%.14f", lng)
+                return  (lat + "," + long)
+            }
+            return ""
+        }
+    }
+    func callApi(_ api : UsedFor = .autocomplete,input:GInput,completion: @escaping GCallback) {
+        let covertedInput = getConvertedInputFor(api,input:input)
+        guard !covertedInput.isEmpty && !googleApiKey.isEmpty else {
             let eDesc = googleApiKey.isEmpty ? "Please add valid google api key" : "Some error occured"
             print("Google api error - \(eDesc)")
             let customError = NSError(domain:"", code:666, userInfo:[ NSLocalizedDescriptionKey: eDesc])
@@ -134,14 +207,14 @@ class GoogleApi : NSObject {
             completion(response)
             return
         }
-        let isAlreadySearched = (searchResultsCache[input] != nil) && api == UsedFor.autocomplete
+        let isAlreadySearched = (searchResultsCache[covertedInput] != nil) && api == UsedFor.autocomplete
         var haveResults = false
         if isAlreadySearched {
-            if let  pastResult = searchResultsCache[input] as? [Results] {
+            if let  pastResult = searchResultsCache[covertedInput] as? [Results] {
                 haveResults = !(pastResult.isEmpty)
             }
         }
-        if let predictions = searchResultsCache[input] as? [Results], haveResults {
+        if let predictions = searchResultsCache[covertedInput] as? [Results], haveResults {
             let response = GApiResponse()
             var revGeoResults : [GApiResponse.Autocomplete] = []
             for prediction in predictions {
@@ -151,7 +224,7 @@ class GoogleApi : NSObject {
             completion(response)
             return;
         } else {
-            let urlString = getUrl(api, input: input)
+            let urlString = getUrl(api, input: covertedInput)
             print("Google api request - \(urlString)")
             let url =  URL(string: urlString.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed)!)!
             let urlSession = URLSession(configuration: URLSessionConfiguration.default)
@@ -172,14 +245,14 @@ class GoogleApi : NSObject {
                     } else if responseData != nil && error == nil {
                         // For reverse geo
                         if let predictions = responseData?["predictions"] as? [Results], api == .autocomplete {
-                            self.searchResultsCache[input] = predictions
+                            self.searchResultsCache[covertedInput] = predictions
                             var autoCompleteResults : [GApiResponse.Autocomplete] = []
                             for prediction in predictions {
                                 autoCompleteResults.append(GApiResponse.Autocomplete.initWithData(prediction))
                             }
                             if !autoCompleteResults.isEmpty { response.data = autoCompleteResults }
                         } else if let predictions = responseData?["results"] as? [Results], api == .reverseGeo {
-                            self.searchResultsCache[input] = predictions
+                            self.searchResultsCache[covertedInput] = predictions
                             var revGeoResults : [GApiResponse.ReverseGio] = []
                             for prediction in predictions {
                                 revGeoResults.append(GApiResponse.ReverseGio.initWithData(prediction))
@@ -187,6 +260,21 @@ class GoogleApi : NSObject {
                             if !revGeoResults.isEmpty { response.data = revGeoResults }
                         } else if let place = responseData?["result"] as? Results, api == .placeInformation {
                             response.data =  GApiResponse.PlaceInfo.initWithData(place)
+                        } else if let place = responseData?["routes"] as? [Results], api == .path && !place.isEmpty {
+                            let route = place.first!
+                            if let oPolyline = route["overview_polyline"] as? Results,let points = oPolyline["points"] as? String {
+                                var data : [String:Any] = [:]
+                                data["points"] = points
+                                if let legs = route["legs"] as? [Results],let leg = legs.first {
+                                    if let distance = leg["distance"] as? Results {
+                                        data["distance"] = distance
+                                    }
+                                    if let duration = leg["duration"] as? Results {
+                                        data["duration"] = duration
+                                    }
+                                }
+                                response.data =  GApiResponse.Path.initWithData(data)
+                            }
                         }
                         completion(response)
                     } else {

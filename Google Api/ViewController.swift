@@ -10,12 +10,15 @@ class ViewController: UIViewController {
     @IBOutlet weak var searchView: UIView!
     @IBOutlet weak var mapview: MKMapView!
     var autocompleteResults :[GApiResponse.Autocomplete] = []
+    var oldLocation :CLLocationCoordinate2D?
 
     @IBAction func searchButtonPressed(_ sender: Any) {
         textfieldAddress.becomeFirstResponder()
     }
     func showResults(string:String){
-        GoogleApi.shared.callApi(input: string) { (response) in
+        var input = GInput()
+        input.keyword = string
+        GoogleApi.shared.callApi(input: input) { (response) in
             if response.isValidFor(.autocomplete) {
                 DispatchQueue.main.async {
                     self.searchView.isHidden = false
@@ -56,16 +59,35 @@ extension ViewController : UITextFieldDelegate {
 }
 extension ViewController : MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-        let lat = String(format:"%.5f", mapview.region.center.latitude)
-        let long = String(format:"%.5f", mapview.region.center.longitude)
-        let addLatLong =  lat + "," + long
-        GoogleApi.shared.callApi(.reverseGeo , input: addLatLong) { (response) in
+        var input = GInput()
+        let destination = GLocation.init(latitude: mapview.region.center.latitude, longitude: mapview.region.center.longitude)
+        input.destinationCoordinate = destination
+        GoogleApi.shared.callApi(.reverseGeo , input: input) { (response) in
             if let places = response.data as? [GApiResponse.ReverseGio], response.isValidFor(.reverseGeo) {
                 DispatchQueue.main.async {
                     self.textfieldAddress.text = places.first?.formattedAddress
                 }
             } else { print(response.error ?? "ERROR") }
         }
+        
+        // Just to demonstrate draw path api
+        if let location = oldLocation {
+            let origin = GLocation.init(latitude: location.latitude, longitude: location.longitude)
+            input.originCoordinate = origin
+            GoogleApi.shared.callApi(.path , input: input) { (response) in
+                if let _ = response.data as? GApiResponse.Path, response.isValidFor(.path) {
+                    /* draw path on map
+                    DispatchQueue.main.async {
+                        let path = GMSPath(fromEncodedPath: route.points)
+                        let polyline = GMSPolyline(path: path)
+                        polyline.strokeWidth = 3.0
+                        polyline.map = mapView
+                    }
+                    */
+                } else { print(response.error ?? "ERROR") }
+            }
+        }
+        oldLocation = mapview.centerCoordinate
     }
 }
 extension ViewController : UITableViewDataSource,UITableViewDelegate {
@@ -81,7 +103,9 @@ extension ViewController : UITableViewDataSource,UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         textfieldAddress.text = autocompleteResults[indexPath.row].formattedAddress
         textfieldAddress.resignFirstResponder()
-        GoogleApi.shared.callApi(.placeInformation,input: autocompleteResults[indexPath.row].placeId) { (response) in
+        var input = GInput()
+        input.keyword = autocompleteResults[indexPath.row].placeId
+        GoogleApi.shared.callApi(.placeInformation,input: input) { (response) in
             if let place =  response.data as? GApiResponse.PlaceInfo, response.isValidFor(.placeInformation) {
                 DispatchQueue.main.async {
                     self.searchView.isHidden = true
