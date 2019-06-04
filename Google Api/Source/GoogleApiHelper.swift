@@ -2,8 +2,8 @@
 //  GoogleApi.swift
 //  Google Api
 //
-//  Created by Wabbit on 4/12/19.
-//  Copyright © 2019 Wabbit. All rights reserved.
+//  Created by @TryWabbit on 4/12/19.
+//  Copyright © 2019 @TryWabbit. All rights reserved.
 //
 
 /*
@@ -11,6 +11,7 @@
  Reverse Geo : https://maps.googleapis.com/maps/api/geocode/json?latlng=26.27454,73.00954&key=key
  Auto Complete : https://maps.googleapis.com/maps/api/place/autocomplete/json?input=jodhp&key=key
  Place information : https://maps.googleapis.com/maps/api/place/details/json?input=jaipur
+ Near By  :https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=(lat),(long)&radius=5000&keyword=starbucks&key=(yourkey)
  */
 
 import UIKit
@@ -22,11 +23,13 @@ struct GInput {
     var keyword : String?
     var originCoordinate : GLocation?
     var destinationCoordinate : GLocation?
+    var radius : Int?
+    var nextPageToken : String?
 }
 class GApiResponse {
     var data : Any?
     var error : Error?
-    
+    var nextPageToken : String?
     func isValidFor(_ type:GoogleApi.UsedFor) -> Bool {
         guard let result = data,error == nil else { return false }
         switch type {
@@ -41,6 +44,9 @@ class GApiResponse {
             return (data != nil)
         case .path:
             let data = result as? Path
+            return (data != nil)
+        case .nearBy:
+            let data = result as? [NearBy]
             return (data != nil)
         }
     }
@@ -96,12 +102,22 @@ class GApiResponse {
         }
     }
     class PlaceInfo {
+        var title : String?
         var formattedAddress : String = ""
         var placeId : String = ""
         var latitude : Double?
         var longitude : Double?
+        var description : String?
+        var internationNumber : String?
+        var website : String?
+        var icon : String?
         class func initWithData(_ data:[String:Any]) -> PlaceInfo {
             let object = PlaceInfo()
+            object.description = data["vicinity"] as? String
+            object.internationNumber = data["international_phone_number"] as? String
+            object.website = data["website"] as? String
+            object.icon = data["icon"] as? String
+            object.title = data["name"] as? String
             if let pId = data["place_id"] as? String,let address = data["formatted_address"] as? String {
                 object.formattedAddress = address
                 object.placeId = pId
@@ -110,6 +126,31 @@ class GApiResponse {
             if let geometry = data["geometry"] as? [String:Any],let location = geometry["location"] as? [String:Double] {
                 object.latitude = location["lat"]
                 object.longitude = location["lng"]
+            }
+            return object
+        }
+    }
+    class NearBy {
+        var formattedAddress : String = ""
+        var placeId : String = ""
+        var location = GLocation()
+        var iconUrl : String?
+        var description : String?
+        class func initWithData(_ data:[String:Any]) -> NearBy {
+            let object = NearBy()
+            if let pId = data["place_id"] as? String,let address = data["name"] as? String {
+                object.formattedAddress = address
+                object.placeId = pId
+                
+            }
+            object.iconUrl = data["icon"] as? String
+            object.description = data["vicinity"] as? String
+            typealias type = GoogleApi.Results
+            if let geometry = data["geometry"] as? type, let coordinate = geometry["location"] as? type {
+                var location = GLocation()
+                location.latitude = coordinate["lat"] as? Double
+                location.longitude = coordinate["lng"] as? Double
+                object.location = location
             }
             return object
         }
@@ -127,6 +168,8 @@ class GoogleApi : NSObject {
         case reverseGeo
         /// Use this enum to find path-distance between two locations
         case path
+        /// Use this enum to get nearby location around a given radius
+        case nearBy
     }
     
     static let shared : GoogleApi = GoogleApi()
@@ -146,6 +189,7 @@ class GoogleApi : NSObject {
         case placeInfo = "https://maps.googleapis.com/maps/api/place/details/json"
         case reverseGeo = "https://maps.googleapis.com/maps/api/geocode/json"
         case path = "https://maps.googleapis.com/maps/api/directions/json"
+        case nearby = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     }
     func initialiseWithKey(_ key:String) {
         googleApiKey = key
@@ -162,6 +206,8 @@ class GoogleApi : NSObject {
             return String(format: "%@?latlng=%@&key=%@",GoogleUrl.reverseGeo.rawValue,input,googleApiKey)
         case .path:
             return String(format: "%@?%@&key=%@",GoogleUrl.path.rawValue,input,googleApiKey)
+        case .nearBy:
+            return String(format: "%@?%@&key=%@",GoogleUrl.nearby.rawValue,input,googleApiKey)
         }
     }
     func cancelOldRequest() {
@@ -194,6 +240,24 @@ class GoogleApi : NSObject {
                 return  (lat + "," + long)
             }
             return ""
+        case .nearBy:
+            //location=(yourlatitude),(yourlongitude)&radius=5000&keyword=starbucks&key=(yourkey)
+            var finalParameters = ""
+            if let lat = input.destinationCoordinate?.latitude, let lng = input.destinationCoordinate?.longitude {
+                let lat = String(format:"%.14f", lat)
+                let long = String(format:"%.14f", lng)
+                finalParameters = "location=" + (lat + "," + long)
+                if let keyword = input.keyword {
+                    finalParameters = finalParameters + "&keyword=" + keyword
+                }
+                if let radius = input.radius {
+                    finalParameters = finalParameters + "&radius=" + String(radius)
+                }
+                if let nextPage = input.nextPageToken{
+                    finalParameters = finalParameters + "&pagetoken=" + nextPage
+                }
+            }
+            return finalParameters
         }
     }
     func callApi(_ api : UsedFor = .autocomplete,input:GInput,completion: @escaping GCallback) {
@@ -275,6 +339,13 @@ class GoogleApi : NSObject {
                                 }
                                 response.data =  GApiResponse.Path.initWithData(data)
                             }
+                        } else if let places = responseData?["results"] as? [Results], api == .nearBy {
+                            var revGeoResults : [GApiResponse.NearBy] = []
+                            for place in places {
+                                revGeoResults.append(GApiResponse.NearBy.initWithData(place))
+                            }
+                            response.data =  revGeoResults
+                            response.nextPageToken = responseData?["next_page_token"] as? String
                         }
                         completion(response)
                     } else {
@@ -285,7 +356,6 @@ class GoogleApi : NSObject {
                     response.error = (customError as Error)
                     completion(response)
                 }
-                
             })
             session!.resume()
         }

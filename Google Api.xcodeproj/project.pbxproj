@@ -13,6 +13,8 @@
 		1161E4EA22609CDD009C63DC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1161E4E922609CDD009C63DC /* Assets.xcassets */; };
 		1161E4F722609F8C009C63DC /* GoogleApiHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1161E4F622609F8C009C63DC /* GoogleApiHelper.swift */; };
 		1197D70622A4F581007ED9DE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1197D70522A4F581007ED9DE /* LaunchScreen.storyboard */; };
+		11D317E322A6975A00CC35D1 /* GoogleApiHelper+Nearby.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D317E222A6975A00CC35D1 /* GoogleApiHelper+Nearby.swift */; };
+		11D317E522A6978100CC35D1 /* NearByEnum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D317E422A6978100CC35D1 /* NearByEnum.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,8 @@
 		1161E4EE22609CDD009C63DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1161E4F622609F8C009C63DC /* GoogleApiHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleApiHelper.swift; sourceTree = "<group>"; };
 		1197D70522A4F581007ED9DE /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		11D317E222A6975A00CC35D1 /* GoogleApiHelper+Nearby.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GoogleApiHelper+Nearby.swift"; sourceTree = "<group>"; };
+		11D317E422A6978100CC35D1 /* NearByEnum.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NearByEnum.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,13 +62,23 @@
 			children = (
 				1161E4E222609CDA009C63DC /* AppDelegate.swift */,
 				1161E4E422609CDA009C63DC /* ViewController.swift */,
-				1161E4F622609F8C009C63DC /* GoogleApiHelper.swift */,
+				11D317E122A6973600CC35D1 /* Source */,
 				1161E4E622609CDB009C63DC /* Main.storyboard */,
 				1197D70522A4F581007ED9DE /* LaunchScreen.storyboard */,
 				1161E4E922609CDD009C63DC /* Assets.xcassets */,
 				1161E4EE22609CDD009C63DC /* Info.plist */,
 			);
 			path = "Google Api";
+			sourceTree = "<group>";
+		};
+		11D317E122A6973600CC35D1 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				1161E4F622609F8C009C63DC /* GoogleApiHelper.swift */,
+				11D317E222A6975A00CC35D1 /* GoogleApiHelper+Nearby.swift */,
+				11D317E422A6978100CC35D1 /* NearByEnum.swift */,
+			);
+			path = Source;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,6 +154,8 @@
 			files = (
 				1161E4E522609CDA009C63DC /* ViewController.swift in Sources */,
 				1161E4E322609CDA009C63DC /* AppDelegate.swift in Sources */,
+				11D317E322A6975A00CC35D1 /* GoogleApiHelper+Nearby.swift in Sources */,
+				11D317E522A6978100CC35D1 /* NearByEnum.swift in Sources */,
 				1161E4F722609F8C009C63DC /* GoogleApiHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
