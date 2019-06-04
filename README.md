@@ -53,6 +53,36 @@ Welcome to Google api helper. This library saves your time to write basic google
             //Enjoy the Path Api
         } else { print(response.error ?? "ERROR") }
     }
+ ## Nearby Places
+
+    var input = GInput()
+    input.keyword = "Restaurants"
+    input.radius = 20000
+    var location = GLocation()
+    location.latitude = 26.273178
+    location.longitude = 73.009545
+    input.destinationCoordinate = location
+    GoogleApi.shared.callApi(.nearBy, input: input) { (response) in
+        if let data = response.data as? [GApiResponse.NearBy], response.isValidFor(.nearBy){
+            // all nearby places
+        }
+    }
+    
+## Bonus
+### Get all nearby places with extention 'GoogleApiHelper+Nearby'
+    var input = GInput()
+    input.keyword = "Restaurants"
+    input.radius = 20000
+    var location = GLocation()
+    location.latitude = 26.273178
+    location.longitude = 73.009545
+    input.destinationCoordinate = location
+    NearbyExtension.shared.completion = { response in
+        if let data = response.data as? [GApiResponse.NearBy], response.isValidFor(.nearBy){
+            // all nearby places
+        }
+    }
+    NearbyExtension.shared.getAllNearBy(input: input)
 
 ## How to use?
 
