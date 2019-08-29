@@ -4,7 +4,6 @@ Google api helper is created to save the time that developer have to spend using
 ---
 ![Swift](https://img.shields.io/badge/Swift-v4.2-orange.svg) 
 ![Xcode](https://img.shields.io/badge/XCode-10.0-blue.svg)
-![](https://img.shields.io/badge/Google-Helper-green.svg) 
 
 ![google map resize](https://user-images.githubusercontent.com/20557360/56422259-1f509e80-62c4-11e9-82b2-5159ac877d57.gif)
 
